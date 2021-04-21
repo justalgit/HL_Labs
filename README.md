@@ -1,55 +1,45 @@
-# hl_event_server
+# Лабораторная работа №1 #
 
-## install C++
-sudo apt-get install gcc g++ cmake git libssl-dev zlib1g-dev librdkafka-dev mysql-server mysql-client libmysqlclient-dev libboost-all-dev
+Выполнил: Ларин Антон, М8О-103М-20
 
-## install java
+## Сборка проекта ##
 
-sudo apt install openjdk-8-jdk
+'''bash
+$ cmake configure .
+$ cmake .
+$ cmake --build ./
+'''
 
-sudo apt install openjdk-8-jre
+## Настройка базы данных ##
 
-## install iginte
+1. Для создания тестового пользователя с именем lab и базы данных itlabs с необходимой таблицей Person необходимо выполнить команды из файла db_creation.sql.
+2. Скрипт заполнения базы данных сгенерированными полями (100 тысяч записей) записан в файле data_generation.sql.
+Выполнение скрипта из файла:
+'''bash
+source <имя файла>.sql;
+'''
 
-Download from https://ignite.apache.org/download.cgi#binaries
+## Запуск сервера ##
 
-build platforms/cpp
+Для запуска сервера следует выполнить команду:
+'''bash
+$ sudo sh ./start.sh
+'''
+Сервер работает на порту 8080.
 
-## install CPPRDKafkfa
+## Тестирование с помощью gtest ##
 
+Запуск модульных тестов осуществляется командой:
+'''bash
+$ ./gtests
+'''
 
-// https://github.com/edenhill/librdkafka
-https://github.com/mfontanini/cppkafka
-mkdir build
-cd build
-cmake <OPTIONS> ..
-make
-make install
+## Тестирование с помощью wrk ##
 
-
-## Install poco
-
-git clone -b master https://github.com/pocoproject/poco.git
-
-cd poco
-
-mkdir cmake-build
-
-cd cmake-build
-
-cmake ..
-
-cmake --build . --config Release
-
-sudo cmake --build . --target install
-
-## Install gtest
-sudo apt-get install libgtest-dev
-
-cd /usr/src/gtest/
-
-sudo cmake -DBUILD_SHARED_LIBS=ON
-
-sudo make
-
-sudo cp *.so /usr/lib
+Нагрузочное тестирование производилось для 1, 2, 6 и 10 потоков при 50 подключениях в течение 30 секунд. Полученные данные (Req/sec - количество запросов в секунду, Latency(ms) - задержка в миллисекундах):
+Threads | Requests/sec | Latency(ms)
+---     | ---          | ---
+1       | 282.14       | 56.60
+2       | 301.79       | 53.09
+6       | 334.18       | 47.90
+10      | 303.34       | 52.67

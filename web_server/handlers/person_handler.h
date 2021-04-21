@@ -1,7 +1,8 @@
-#ifndef AUTHORHANDLER_H
-#define AUTHORHANDLER_H
+#ifndef PERSON_HANDLER_H
+#define PERSON_HANDLER_H
 
 #include "Poco/Net/HTTPServer.h"
+#include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPRequestHandler.h"
 #include "Poco/Net/HTTPRequestHandlerFactory.h"
 #include "Poco/Net/HTTPServerParams.h"
@@ -28,6 +29,7 @@ using Poco::DateTimeFormatter;
 using Poco::ThreadPool;
 using Poco::Timestamp;
 using Poco::Net::HTMLForm;
+using Poco::Net::HTTPRequest;
 using Poco::Net::HTTPRequestHandler;
 using Poco::Net::HTTPRequestHandlerFactory;
 using Poco::Net::HTTPServer;
@@ -43,9 +45,10 @@ using Poco::Util::OptionCallback;
 using Poco::Util::OptionSet;
 using Poco::Util::ServerApplication;
 
-#include "../../database/author.h"
 
-class AuthorHandler : public HTTPRequestHandler
+#include "../../database/person.h"
+
+class PersonHandler : public HTTPRequestHandler
 {
 private:
     bool check_name(const std::string &name, std::string &reason)
@@ -71,31 +74,8 @@ private:
         return true;
     };
 
-    bool check_email(const std::string &email, std::string &reason)
-    {
-        if (email.find('@') == std::string::npos)
-        {
-            reason = "Email must contain @";
-            return false;
-        }
-
-        if (email.find(' ') != std::string::npos)
-        {
-            reason = "EMail can't contain spaces";
-            return false;
-        }
-
-        if (email.find('\t') != std::string::npos)
-        {
-            reason = "EMail can't contain spaces";
-            return false;
-        }
-
-        return true;
-    };
-
 public:
-    AuthorHandler(const std::string &format) : _format(format)
+    PersonHandler(const std::string &format) : _format(format)
     {
     }
 
@@ -107,72 +87,67 @@ public:
         response.setContentType("application/json");
         std::ostream &ostr = response.send();
 
-        if (form.has("id"))
-        {
-            long id = atol(form.get("id").c_str());
-            try
-            {
-                database::Author result = database::Author::read_by_id(id);
-                Poco::JSON::Stringifier::stringify(result.toJSON(), ostr);
+        if(request.getMethod() == HTTPRequest::HTTP_GET) {
+            if (form.has("login")) {
+                std::string login = form.get("login");
+                try {
+                    database::Person result = database::Person::read_by_login(login);
+                    Poco::JSON::Stringifier::stringify(result.toJSON(), ostr);
+                    return;
+                }
+                catch (...) {
+                    ostr << "{ \"result\": false , \"reason\": \"not found\" }";
+                    return;
+                }
+
+            } else if (form.has("first_name") && form.has("last_name")) {
+                try {
+                    std::string fn = form.get("first_name");
+                    std::string ln = form.get("last_name");
+                    auto results = database::Person::search(fn, ln);
+                    Poco::JSON::Array arr;
+                    for (auto s : results)
+                        arr.add(s.toJSON());
+                    Poco::JSON::Stringifier::stringify(arr, ostr);
+                }
+                catch (...) {
+                    ostr << "{ \"result\": false , \"reason\": \"not found\" }";
+                    return;
+                }
                 return;
             }
-            catch (...)
-            {
-                ostr << "{ \"result\": false , \"reason\": \"not gound\" }";
-                return;
-            }
+        
+            auto results = database::Person::read_all();
+            Poco::JSON::Array arr;
+            for (auto s : results)
+                arr.add(s.toJSON());
+            Poco::JSON::Stringifier::stringify(arr, ostr);
         }
-        else if (form.has("search"))
+        else if(request.getMethod() == HTTPRequest::HTTP_POST)
         {
-            try
-            {
-                std::string  fn = form.get("first_name");
-                std::string  ln = form.get("last_name");
-                auto results = database::Author::search(fn,ln);
-                Poco::JSON::Array arr;
-                for (auto s : results)
-                    arr.add(s.toJSON());
-                Poco::JSON::Stringifier::stringify(arr, ostr);
-            }
-            catch (...)
-            {
-                ostr << "{ \"result\": false , \"reason\": \"not gound\" }";
-                return;
-            }
-            return;
-        }
-        else if (form.has("add"))
-        {
-            if (form.has("first_name"))
-                if (form.has("last_name"))
-                    if (form.has("email"))
-                        if (form.has("title"))
+            if (form.has("login"))
+                if (form.has("first_name"))
+                    if (form.has("last_name"))
+                        if (form.has("age"))
                         {
-                            database::Author author;
-                            author.first_name() = form.get("first_name");
-                            author.last_name() = form.get("last_name");
-                            author.email() = form.get("email");
-                            author.title() = form.get("title");
+                            database::Person person;
+                            person.login() = form.get("login");
+                            person.first_name() = form.get("first_name");
+                            person.last_name() = form.get("last_name");
+                            person.age() = std::stoi(form.get("age"));
 
                             bool check_result = true;
                             std::string message;
                             std::string reason;
 
-                            if (!check_name(author.get_first_name(), reason))
+                            if (!check_name(person.get_first_name(), reason))
                             {
                                 check_result = false;
                                 message += reason;
                                 message += "<br>";
                             }
 
-                            if (!check_name(author.get_last_name(), reason))
-                            {
-                                check_result = false;
-                                message += reason;
-                                message += "<br>";
-                            }
-
-                            if (!check_email(author.get_email(), reason))
+                            if (!check_name(person.get_last_name(), reason))
                             {
                                 check_result = false;
                                 message += reason;
@@ -183,7 +158,7 @@ public:
                             {
                                 try
                                 {
-                                    author.save_to_mysql();
+                                    person.save_to_mysql();
                                     ostr << "{ \"result\": true }";
                                     return;
                                 }
@@ -199,16 +174,14 @@ public:
                                 return;
                             }
                         }
+            ostr << "{ \"result\": false , \"reason\": \"" << "bad request" << "\" }";
+            return;
         }
-
-        auto results = database::Author::read_all();
-        Poco::JSON::Array arr;
-        for (auto s : results)
-            arr.add(s.toJSON());
-        Poco::JSON::Stringifier::stringify(arr, ostr);
     }
 
 private:
     std::string _format;
+
 };
-#endif // !AUTHORHANDLER_H
+
+#endif //PERSON_HANDLER_H
