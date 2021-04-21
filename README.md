@@ -4,11 +4,11 @@
 
 ## Сборка проекта ##
 
-'''bash
+```bash
 $ cmake configure .
 $ cmake .
 $ cmake --build ./
-'''
+```
 
 ## Настройка базы данных ##
 
