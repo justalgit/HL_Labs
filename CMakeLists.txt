@@ -22,27 +22,20 @@ include_directories("/usr/local/include/mysql")
 include_directories(${Boost_INCLUDE_DIR})
 link_directories("/usr/local/lib")
 
-add_executable(${EXAMPLE_BINARY} main.cpp 
-                                 config/config.cpp 
-                                 database/database.cpp
-                                 database/author.cpp)
-
+add_executable(gtests tests.cpp config/config.cpp database/database.cpp database/person.cpp)
+add_executable(${EXAMPLE_BINARY} main.cpp config/config.cpp database/database.cpp database/person.cpp)
 
 target_include_directories(${EXAMPLE_BINARY} PRIVATE "${CMAKE_BINARY_DIR}")
+
 target_compile_options(${EXAMPLE_BINARY} PRIVATE -Wall -Wextra -pedantic -Werror )
 
-
-target_link_libraries(${EXAMPLE_BINARY} PRIVATE 
-                             ${CMAKE_THREAD_LIBS_INIT} 
-                             ${Poco_LIBRARIES}
-                             "PocoData"
-                             "PocoDataMySQL"
-                             "mysqlclient"
-                             ZLIB::ZLIB)
+target_link_libraries(${EXAMPLE_BINARY} PRIVATE ${CMAKE_THREAD_LIBS_INIT}  ${Poco_LIBRARIES} "PocoData" "PocoDataMySQL"  "mysqlclient" ZLIB::ZLIB)
+target_link_libraries(gtests PRIVATE ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Poco_LIBRARIES} "PocoData" "PocoDataMySQL"  "mysqlclient" ZLIB::ZLIB)
 
 
 set_target_properties(${EXAMPLE_BINARY} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${EXAMPLE_BINARY} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+set_target_properties(gtests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
 install(TARGETS ${EXAMPLE_BINARY} RUNTIME DESTINATION bin)
 
@@ -53,3 +46,5 @@ set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set(CPACK_PACKAGE_CONTACT Dmitriy.Dzyuba@mts.ru)
 include(CPack)
 
+enable_testing()
+add_test(gtests gtests)
