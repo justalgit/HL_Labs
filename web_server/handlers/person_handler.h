@@ -55,7 +55,7 @@ private:
     {
         if (name.length() < 3)
         {
-            reason = "Name must be at leas 3 signs";
+            reason = "Name must be at least 3 signs";
             return false;
         }
 
@@ -88,10 +88,35 @@ public:
         std::ostream &ostr = response.send();
 
         if(request.getMethod() == HTTPRequest::HTTP_GET) {
+
+            bool no_cache = false;
+
             if (form.has("login")) {
+
+                if (form.has("no_cache"))
+                    no_cache = true;
+                
                 std::string login = form.get("login");
+
+                // Шаблон «сквозное чтение»
+
+                if (!no_cache)
+                {
+                    try
+                    {
+                        database::Person result = database::Person::read_from_cache_by_login(login);
+                        Poco::JSON::Stringifier::stringify(result.toJSON(), ostr);
+                        return;
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+
                 try {
                     database::Person result = database::Person::read_by_login(login);
+                    std::cout << result.get_login() << ", " << result.get_first_name() << ", " << result.get_last_name() << std::endl;
+                    result.save_to_cache();
                     Poco::JSON::Stringifier::stringify(result.toJSON(), ostr);
                     return;
                 }
@@ -123,6 +148,7 @@ public:
                 arr.add(s.toJSON());
             Poco::JSON::Stringifier::stringify(arr, ostr);
         }
+        
         else if(request.getMethod() == HTTPRequest::HTTP_POST)
         {
             if (form.has("login"))
@@ -158,7 +184,9 @@ public:
                             {
                                 try
                                 {
+                                    // Шаблон «сквозная запись»
                                     person.save_to_mysql();
+                                    person.save_to_cache();
                                     ostr << "{ \"result\": true }";
                                     return;
                                 }

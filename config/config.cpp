@@ -34,6 +34,11 @@ const std::string &Config::get_database() const
     return _database;
 }
 
+const std::string &Config::get_cache_servers() const
+{
+    return _cache_servers;
+}
+
 std::string &Config::port()
 {
     return _port;
@@ -57,4 +62,9 @@ std::string &Config::password()
 std::string &Config::database()
 {
     return _database;
+}
+
+std::string &Config::cache_servers()
+{
+    return _cache_servers;
 }
