@@ -11,6 +11,8 @@ namespace database{
         _connection_string+=Config::get().get_database();
         _connection_string+=";password=";
         _connection_string+=Config::get().get_password();
+        _connection_string+=";port=";
+        _connection_string+=Config::get().get_port();
 
         Poco::Data::MySQL::Connector::registerConnector();
     }
@@ -24,4 +26,12 @@ namespace database{
         return Poco::Data::Session(Poco::Data::SessionFactory::instance().create(Poco::Data::MySQL::Connector::KEY, _connection_string));
     }
 
+    std::string Database::sharding_hint(std::string key, size_t max_shards){
+
+        size_t shard_number = std::hash<std::string>{}(key)%max_shards;
+
+        std::string result = "-- sharding:";
+        result += std::to_string(shard_number);
+        return result;
+    }
 }

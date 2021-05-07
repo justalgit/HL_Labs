@@ -26,6 +26,11 @@ link_directories("/usr/local/lib")
 add_executable(gtests tests.cpp config/config.cpp database/database.cpp database/person.cpp database/cache.cpp)
 add_executable(${EXAMPLE_BINARY} main.cpp config/config.cpp database/database.cpp database/person.cpp database/cache.cpp)
 
+add_executable(data_shard_splitter data_shard_splitter.cpp)
+target_compile_options(data_shard_splitter PRIVATE -Wall -Wextra -pedantic -Werror )
+set_target_properties(data_shard_splitter PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(data_shard_splitter PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
 target_include_directories(${EXAMPLE_BINARY} PRIVATE "${CMAKE_BINARY_DIR}")
 
 target_compile_options(${EXAMPLE_BINARY} PRIVATE -Wall -Wextra -pedantic -Werror )

@@ -53,12 +53,6 @@ class PersonHandler : public HTTPRequestHandler
 private:
     bool check_name(const std::string &name, std::string &reason)
     {
-        if (name.length() < 3)
-        {
-            reason = "Name must be at least 3 signs";
-            return false;
-        }
-
         if (name.find(' ') != std::string::npos)
         {
             reason = "Name can't contain spaces";
