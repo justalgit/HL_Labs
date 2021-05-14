@@ -178,9 +178,11 @@ public:
                             {
                                 try
                                 {
-                                    // Шаблон «сквозная запись»
-                                    person.save_to_mysql();
-                                    person.save_to_cache();
+                                    // Шаблон «сквозная запись» (реализуется при чтении с очереди)
+                                    //person.save_to_mysql();
+                                    //person.save_to_cache();
+                                    person.send_to_queue();
+                                    
                                     ostr << "{ \"result\": true }";
                                     return;
                                 }

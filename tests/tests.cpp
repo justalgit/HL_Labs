@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "config/config.h"
-#include "database/database.h"
-#include "database/person.h"
+#include "../config/config.h"
+#include "../database/database.h"
+#include "../database/person.h"
 #include <Poco/Data/SessionFactory.h>
 using Poco::Data::Session;
 using Poco::Data::Statement;
@@ -34,16 +34,20 @@ void remove_person(std::string login, int shard_num) {
 }
 
 class TestApp : public ::testing::Test {
-protected:
+public:
     TestApp() {
         Config::get().host() = "127.0.0.1";
         Config::get().database() = "sql_test";
         Config::get().port() = "6033";
         Config::get().login() = "test";
         Config::get().password() = "pzjqUkMnc7vfNHET";
+        Config::get().cache_servers() = "127.0.0.1:10800,127.0.0.1:10900";
+        Config::get().queue_host() = "127.0.0.1:9092";
+        Config::get().queue_topic() = "event_server";
+        Config::get().queue_group_id() = "0";
     }
     
-    ~TestApp() {
+    ~TestApp() { 
         remove_person("111", 0);
         remove_person("222", 1);
         remove_person("333-333-333", 1);
@@ -63,76 +67,70 @@ protected:
 
 };
 
-TEST_F(TestApp, TestPerson) {
-
+TEST_F (TestApp, test1) {
     database::Person person;
-    /*
-    std::cout << "Shard #0: " << get_ai(0) << std::endl;
-    std::cout << "Shard #1: " << get_ai(1) << std::endl;
-    std::cout << "Shard #2: " << get_ai(2) << std::endl;
-    */
-    //POST tests
     person.login() = "111";
     person.first_name() = "Anton";
     person.last_name() = "Larin";
     person.age() = 22;
-    testing::internal::CaptureStdout();
     person.save_to_mysql();
-    ASSERT_EQ(testing::internal::GetCapturedStdout(), "-- sharding:0\n");
+    database::Person login_result = database::Person::read_by_login(person.get_login());
+    ASSERT_EQ(login_result.get_first_name(), person.get_first_name());
+    ASSERT_EQ(login_result.get_last_name(), person.get_last_name());
+    ASSERT_EQ(login_result.get_age(), person.get_age());
+}
 
+TEST_F (TestApp, test2) {
+    database::Person person;
     person.login() = "222";
     person.first_name() = "A";
     person.last_name() = "L";
-    testing::internal::CaptureStdout();
+    person.age() = 22;
     person.save_to_mysql();
-    ASSERT_EQ(testing::internal::GetCapturedStdout(), "-- sharding:1\n");
+    database::Person login_result = database::Person::read_by_login(person.get_login());
+    ASSERT_EQ(login_result.get_first_name(), person.get_first_name());
+    ASSERT_EQ(login_result.get_last_name(), person.get_last_name());
+    ASSERT_EQ(login_result.get_age(), person.get_age());
+}
 
+TEST_F (TestApp, test3) {
+    database::Person person;
     person.login() = "333-333-333";
     person.first_name() = "Alexey";
     person.last_name() = "Vorobev";
     person.age() = 22;
-    testing::internal::CaptureStdout();
     person.save_to_mysql();
-    ASSERT_EQ(testing::internal::GetCapturedStdout(), "-- sharding:1\n");
+    database::Person login_result = database::Person::read_by_login(person.get_login());
+    ASSERT_EQ(login_result.get_first_name(), person.get_first_name());
+    ASSERT_EQ(login_result.get_last_name(), person.get_last_name());
+    ASSERT_EQ(login_result.get_age(), person.get_age());
+}
 
+TEST_F (TestApp, test4) {
+    database::Person person;
     person.login() = "54321";
     person.first_name() = "Vlad";
     person.last_name() = "Petrushin";
     person.age() = 22;
-    testing::internal::CaptureStdout();
     person.save_to_mysql();
-    ASSERT_EQ(testing::internal::GetCapturedStdout(), "-- sharding:2\n");
+    database::Person login_result = database::Person::read_by_login(person.get_login());
+    ASSERT_EQ(login_result.get_first_name(), person.get_first_name());
+    ASSERT_EQ(login_result.get_last_name(), person.get_last_name());
+    ASSERT_EQ(login_result.get_age(), person.get_age());
+}
 
+TEST_F (TestApp, test5) {
+    database::Person person;
     person.login() = "12345";
     person.first_name() = "Alexey";
     person.last_name() = "Vinnikov";
     person.age() = 22;
-    testing::internal::CaptureStdout();
     person.save_to_mysql();
-    ASSERT_EQ(testing::internal::GetCapturedStdout(), "-- sharding:0\n");
-
-    //GET tests
-    database::Person login_result1 = database::Person::read_by_login("111");
-    ASSERT_EQ(login_result1.get_first_name(), "Anton");
-    ASSERT_EQ(login_result1.get_last_name(), "Larin");
-    ASSERT_EQ(login_result1.get_age(), 22);
-
-    database::Person login_result2 = database::Person::read_by_login("222");
-    ASSERT_EQ(login_result2.get_first_name(), "A");
-    ASSERT_EQ(login_result2.get_last_name(), "L");
-    ASSERT_EQ(login_result2.get_age(), 22);
-
-    auto name_result1 = database::Person::search("Anton", "Larin");
-    ASSERT_EQ(name_result1.at(0).get_login(), "111");
-    ASSERT_EQ(name_result1.size(), 1);
-
-    auto name_result2 = database::Person::search("Alexey", "V");
-    ASSERT_EQ(name_result2.size(), 2);
-
-    auto full_query = database::Person::read_all();
-    ASSERT_EQ(full_query.size(), 100005);
+    database::Person login_result = database::Person::read_by_login(person.get_login());
+    ASSERT_EQ(login_result.get_first_name(), person.get_first_name());
+    ASSERT_EQ(login_result.get_last_name(), person.get_last_name());
+    ASSERT_EQ(login_result.get_age(), person.get_age());
 }
-
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

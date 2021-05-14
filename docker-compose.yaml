@@ -95,6 +95,19 @@ services:
       # Mysql Admin Port
       - "6032:6032"
 
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    
+  kafka-node-1:
+    image: wurstmeister/kafka
+    container_name: kafka-node-1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
 volumes:
   db-node-1-data:
   db-node-2-data:

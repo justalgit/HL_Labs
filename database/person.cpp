@@ -8,6 +8,7 @@
 #include <Poco/Data/SessionFactory.h>
 #include <Poco/JSON/Parser.h>
 #include <Poco/Dynamic/Var.h>
+#include <cppkafka/cppkafka.h>
 
 #include <sstream>
 #include <exception>
@@ -224,7 +225,7 @@ namespace database
             std::string sql_request = "INSERT INTO Person (login, first_name, last_name, age) VALUES(?, ?, ?, ?) ";
             std::string comment = database::Database::sharding_hint(_login, 3);
             sql_request += comment;
-            std::cout << comment << std::endl;
+            //std::cout << comment << std::endl;
 
             insert << sql_request,
                     use(_login),
@@ -292,6 +293,21 @@ namespace database
         return database::Cache::get().size();
     }
 
+    //Queue section
+
+    void Person::send_to_queue()
+    {
+        cppkafka::Configuration config = {
+                {"metadata.broker.list", Config::get().get_queue_host()}};
+
+        cppkafka::Producer producer(config);
+        std::stringstream ss;
+        Poco::JSON::Stringifier::stringify(toJSON(), ss);
+        std::string message = ss.str();
+        producer.produce(cppkafka::MessageBuilder(Config::get().get_queue_topic()).partition(0).payload(message));
+        producer.flush();
+    }
+
     long Person::get_id() const
     {
         return _id;
@@ -335,7 +351,6 @@ namespace database
     {
         return _last_name;
     }
-
 
     unsigned char &Person::age()
     {

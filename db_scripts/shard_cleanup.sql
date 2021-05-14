@@ -1,10 +1,10 @@
 use sql_test;
-DROP TABLE IF EXISTS Person
+DELETE FROM Person
 -- sharding:0
 ;
-DROP TABLE IF EXISTS Person
+DELETE FROM Person
 -- sharding:1
 ;
-DROP TABLE IF EXISTS Person
+DELETE FROM Person
 -- sharding:2
 ;
